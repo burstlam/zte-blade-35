@@ -346,6 +346,26 @@ do {									\
 	__ret;								\
 })
 
+#define __wait_event_interruptible_timeout_io(wq, condition, ret) 	\
+do {									\
+	DEFINE_WAIT(__wait);						\
+									\
+	for (;;) { 							\
+		prepare_to_wait(&wq, &__wait, TASK_INTERRUPTIBLE); 	\
+		if (condition) 						\
+			break; 						\
+		if (!signal_pending(current)) { 			\
+			ret = io_schedule_timeout(ret); 		\
+			if (!ret) 					\
+				break; 					\
+			continue; 					\
+		} 							\
+		ret = -ERESTARTSYS; 					\
+		break; 							\
+	} 								\
+	finish_wait(&wq, &__wait); 					\
+} while (0)
+
 /**
  * wait_io_event_interruptible - sleep until an io condition gets true
  * @wq: the waitqueue to wait on
