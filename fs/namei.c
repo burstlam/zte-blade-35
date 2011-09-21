@@ -172,8 +172,7 @@ EXPORT_SYMBOL(putname);
 static int acl_permission_check(struct inode *inode, int mask,
 		int (*check_acl)(struct inode *inode, int mask))
 {
-	umode_t			mode = inode->i_mode;
-
+	unsigned int mode = inode->i_mode;
 	mask &= MAY_READ | MAY_WRITE | MAY_EXEC;
 
 	if (current_fsuid() == inode->i_uid)
