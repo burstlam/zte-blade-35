@@ -125,6 +125,11 @@ Use the CPUFreq governor 'smartass' as default.
 
 endchoice
 
+config CPU_FREQ_GOV_INTERACTIVEX
+	tristate "'interactiveX' cpufreq policy governor"
+	help
+	  'InteractiveX' - Modified version of interactive with sleep+wake code.
+
 config CPU_FREQ_GOV_PERFORMANCE
 	tristate "'performance' governor"
 	help
