@@ -1,11 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.7
-<<<<<<< HEAD:arch/arm/configs/cm7gen2_defconfig
-# Sat Sep  3 02:20:38 2011
-=======
 # Sat Oct  8 13:05:39 2011
->>>>>>> 7faa7dc... leds: Add option to keep LEDs on during suspend:arch/arm/configs/cyanogen_blade_defconfig
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
