@@ -15,8 +15,11 @@
 /* ========================================================================================
 when         who        what, where, why                         comment tag
 --------     ----       -------------------------------------    --------------------------
-2011-03-02   zfj        use create_singlethread_workqueue instead ZTE_TS_ZFJ_20110302 
-2010-12-28   zfj        add synaptics 3k touchscreen macro        ZTE_TS_ZFJ_20101228
+2011-05-11   zfj        cancel rotate x and y for P725A          ZTE_TS_ZFJ_20110511
+2011-03-17   zfj        rotate x and y position for P725A        ZTE_TS_ZFJ_20110317
+2011-03-02   zfj        use create_singlethread_workqueue instead    ZTE_TS_ZFJ_20110302 
+2011-03-15   zfj        modify touchscreen enable gpio           ZTE_TS_ZFJ_20110315
+2010-12-28	 zfj        add synaptics 3k touchscreen macro       ZTE_TS_ZFJ_20101228
 2010-10-14   liwei      change filter threshold.                 ZTE_TOUCH_LIWEI_20101014
 2010-09-01   xuke       add filter.                              ZTE_XUKE_TOUCH_20100901
 2010-09-01	xiayc		remove POLLING mode.					ZTE-XIAYC_20100901,ZTE_WLY_CRDB00533288
@@ -55,6 +58,10 @@ when         who        what, where, why                         comment tag
 #define GPIO_TOUCH_EN_OUT  31
 #elif defined(CONFIG_MACH_R750)//R750 touchscreen enable
 #define GPIO_TOUCH_EN_OUT  33
+#elif defined(CONFIG_MACH_TURIES)
+#define GPIO_TOUCH_EN_OUT 89  	//ZTE_TS_ZFJ_20110315
+#elif defined(CONFIG_MACH_MOONCAKE)
+#define GPIO_TOUCH_EN_OUT  30
 #else//other projects
 #define GPIO_TOUCH_EN_OUT  31
 #endif
@@ -73,11 +80,6 @@ when         who        what, where, why                         comment tag
 #define TOUCHSCREEN_DUPLICATED_FILTER
 #define LCD_MAX_X   480
 #define LCD_MAX_Y   800
-#endif
-
-
-#if defined(CONFIG_MACH_R750)//ZTE_TS_ZT_20100513_002
-#define TS_KEY_REPORT 
 #endif
 
 /*ZTE_TOUCH_WLY_006,@2010-01-06,begin*/
@@ -110,6 +112,14 @@ static struct i2c_driver synaptics_ts_driver;
 #endif
 //ZTE_TOUCH_CHJ_009,moving polling process into the interrpt,@2010-02-03,end
 
+/*ZTE_TS_ZFJ_20110511 begin*/
+#if 0
+#if defined(CONFIG_MACH_TURIES)
+static int p725a_max_y = 0;  //ZTE_TS_ZFJ_20110317
+#endif
+#endif
+/*ZTE_TS_ZFJ_20110511 end*/
+
 struct synaptics_ts_data
 {
 	uint16_t addr;
@@ -131,54 +141,48 @@ static void synaptics_ts_early_suspend(struct early_suspend *h);
 static void synaptics_ts_late_resume(struct early_suspend *h);
 #endif
 
-#ifdef TS_KEY_REPORT//ZTE_TS_ZT_20100513_002
-const char ts_keys_size_synaptics[] = "0x01:102:51:503:102:1007:0x01:139:158:503:102:1007:0x01:158:266:503:102:1007";
-struct attribute ts_key_report_attr_synaptics = {
-        .name = "virtualkeys.synaptics-rmi-touchscreen",
-        .mode = S_IRWXUGO,
-};
- 
-static struct attribute *def_attrs_synaptics[] = {
-        &ts_key_report_attr_synaptics,
-        NULL,
-};
- 
-void ts_key_report_synaptics_release(struct kobject *kobject)
+#if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)//ZTE_TS_ZT_20100513_002
+#define virtualkeys virtualkeys.synaptics-rmi-touchscreen
+#if defined(CONFIG_MACH_MOONCAKE)
+static const char ts_keys_size[] = "0x01:139:42:335:10:10:0x01:158:204:335:10:10";
+#else
+static const char ts_keys_size[] = "0x01:102:51:503:102:1007:0x01:139:158:503:102:1007:0x01:158:266:503:102:1007";
+#endif
+static ssize_t virtualkeys_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
-        return;
+	sprintf(buf,"%s\n",ts_keys_size);
+	printk("wly:%s\n",__FUNCTION__);
+    return strlen(ts_keys_size)+2;
+}
+static DEVICE_ATTR(virtualkeys, 0444, virtualkeys_show, NULL);
+extern struct kobject *android_touch_kobj;
+static struct kobject * virtual_key_kobj;
+static int ts_key_report_init(void)
+{
+	int ret;
+	virtual_key_kobj = kobject_get(android_touch_kobj);
+	if (virtual_key_kobj == NULL) {
+		virtual_key_kobj = kobject_create_and_add("board_properties", NULL);
+		if (virtual_key_kobj == NULL) {
+			printk(KERN_ERR "%s: subsystem_register failed\n", __func__);
+			ret = -ENOMEM;
+			return ret;
+}
 }
  
-ssize_t ts_key_report_synaptics_show(struct kobject *kobject, struct attribute *attr,char *buf)
-{
-        sprintf(buf,"%s\n",ts_keys_size_synaptics);
-        return strlen(ts_keys_size_synaptics)+2;
+	ret = sysfs_create_file(virtual_key_kobj, &dev_attr_virtualkeys.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
 }
  
-ssize_t ts_key_report_synaptics_store(struct kobject *kobject,struct attribute *attr,const char *buf, size_t count)
-{
-        return count;
+	return 0;
 }
- 
-struct sysfs_ops ts_key_report_sysops_synaptics =
+static void ts_key_report_deinit(void)
 {
-        .show = ts_key_report_synaptics_show,
-        .store = ts_key_report_synaptics_store,
-};
- 
-struct kobj_type ktype_synaptics = 
-{
-        .release = ts_key_report_synaptics_release,
-        .sysfs_ops=&ts_key_report_sysops_synaptics,
-        .default_attrs=def_attrs_synaptics,
-};
- 
-struct kobject kobj_synaptics;
-static void ts_key_report_synaptics_init(void)
-{
-	int ret = 0;
-        ret = kobject_init_and_add(&kobj_synaptics,&ktype_synaptics,NULL,"board_properties");
-	if(ret)
-		printk(KERN_ERR "ts_key_report_init: Unable to init and add the kobject\n");
+	sysfs_remove_file(virtual_key_kobj, &dev_attr_virtualkeys.attr);
+	kobject_del(virtual_key_kobj);
 }
 #endif
 #if 1 //ZTE_WLY_CRDB00512790,BEGIN
@@ -384,20 +388,18 @@ static void synaptics_ts_work_func(struct work_struct *work)
 {
   /*ZTE_TOUCH_WLY_007,@2010-01-19,begin*/
 	int ret, x, y, z, finger, w, x2, y2,w2,z2,finger2,pressure,pressure2;
-#if defined(CONFIG_MACH_SKATE)
-	int x3, y3, z3, finger3, w3, x4, y4,w4,z4,finger4,pressure3,pressure4;
-	int x5, y5, z5, finger5, w5,pressure5;
-#endif
-	
   /*ZTE_TOUCH_WLY_006,@2010-01-06,begin*/
-	__s8  gesture, flick_y, flick_x, direction = 0;  
-	uint8_t buf[32];
+	__s8  gesture, flick_y, flick_x, direction = 0; 
+  #if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)
+  #if defined(CONFIG_MACH_MOONCAKE)
+  	static int x_temp,y_temp;
+  #endif
+  #endif
+	uint8_t buf[16];
 	struct synaptics_ts_data *ts = container_of(work, struct synaptics_ts_data, work);
-	
-	memset(buf, 0, 32);
 	finger=0;//initializing the status
 	#if defined(CONFIG_MACH_SKATE)
-	ret = synaptics_i2c_read(ts->client, 0x14, buf, 32);
+	ret = synaptics_i2c_read(ts->client, 0x14, buf, 16);
 	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 	ret = synaptics_i2c_read(ts->client, 0x14, buf, 16);  //ZTE_WLY_CRDB00512790
 	#else
@@ -418,7 +420,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					       buf[0], buf[1], buf[2], buf[3],
 					       buf[4], buf[5], buf[6], buf[7],
 	        buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], ret);*/
-			#if defined(CONFIG_MACH_SKATE)
+			#if defined(CONFIG_MACH_SKATE)||defined(CONFIG_MACH_MOONCAKE)
 			x = (uint16_t) buf[3] << 4| (buf[5] & 0x0f) ; 
 			y = (uint16_t) buf[4] << 4| ((buf[5] & 0xf0) >> 4); 
 			pressure = buf[7];
@@ -431,28 +433,8 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			pressure2 = buf[12]; 
 			w2 = buf[11] >> 4; 
 			z2 = buf[11] & 0x0f;
+	        /*ZTE_TOUCH_WLY_006,@2010-01-06,begin*/
 			finger2 = buf[1] & 0xc; 
-
-			x3 = (uint16_t) buf[13] << 4| (buf[15] & 0x0f) ;  
-			y3 = (uint16_t) buf[14] << 4| ((buf[15] & 0xf0) >> 4); 
-			pressure3 = buf[17]; 
-			w3 = buf[16] >> 4; 
-			z3 = buf[16] & 0x0f;
-			finger3 = buf[1] & 0x30; 
-			
-			x4 = (uint16_t) buf[18] << 4| (buf[20] & 0x0f) ;  
-			y4 = (uint16_t) buf[19] << 4| ((buf[20] & 0xf0) >> 4); 
-			pressure4 = buf[22]; 
-			w4 = buf[21] >> 4; 
-			z4 = buf[21] & 0x0f;
-			finger4 = buf[1] & 0xc0; 
-			
-			x5 = (uint16_t) buf[23] << 4| (buf[26] & 0x0f) ;  
-			y5 = (uint16_t) buf[24] << 4| ((buf[25] & 0xf0) >> 4); 
-			pressure5 = buf[27]; 
-			w5 = buf[26] >> 4; 
-			z5 = buf[26] & 0x0f;
-			finger5 = buf[2] & 0x03; 
 			#else
 			x = (uint16_t) buf[2] << 4| (buf[4] & 0x0f) ; 
 			y = (uint16_t) buf[3] << 4| ((buf[4] & 0xf0) >> 4); 
@@ -494,8 +476,58 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 			}
 			/*fick_x>0,means move apart, flick_y<0,means close together, the value means velocity*/
-			
+			//ZTE_TS_HUANGJINYU_20110321 BEGIN
+			#if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)
+			#if defined(CONFIG_MACH_MOONCAKE)
+			if(buf[0]&0x04)
+			{
+				if(buf[1]==0x01)
+				{
+					x= 320;
+					y= 2500;
+					pressure = 50;
+					x_temp=x;
+					y_temp=y;
+					
+					//input_report_key(ts->input_dev, BTN_TOUCH, 1);
+				}else if(buf[1]==0x02)
+				{
+					x= 1540;
+					y= 2500;
+					pressure = 50;
+					x_temp=x;
+					y_temp=y;
+					//input_report_key(ts->input_dev, BTN_TOUCH, 1);
+
+				}else
+				{
+					x=x_temp;
+					y=y_temp;
+					//input_report_key(ts->input_dev, BTN_TOUCH, 0);
+				}
+			}
+			#endif
+			#endif
+			//ZTE_TS_HUANGJINYU_20110321 END
 //ZTE_XUKE_TOUCH_20100901
+/*ZTE_TS_ZFJ_20110511 begin*/
+/*ZTE_TS_ZFJ_20110317 begin*/
+/*
+#if defined(CONFIG_MACH_TURIES)
+	y = p725a_max_y - y;
+	x = x + y;
+	y = x - y;
+	x = x - y;
+
+	y2 = p725a_max_y -y2;
+	x2 = x2 + y2;
+	y2 = x2 - y2;
+	x2 = x2 - y2;
+#endif
+*/
+/*ZTE_TS_ZFJ_20110317 end*/
+/*ZTE_TS_ZFJ_20110511 end*/
+
 #ifdef TOUCHSCREEN_DUPLICATED_FILTER
 	ret = duplicated_filter(ts, x,y,x2,y2, finger2, pressure);
 	if (ret == 0) 
@@ -509,45 +541,17 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
 			input_mt_sync(ts->input_dev);
-
+			//printk("huangjinyu x = %d ,y= %d pressure = %d \n",x,y,pressure);
 			if(finger2)
 			{
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure2);//ZTE_PRESS_WLY_0524
+				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure2);//ZTE_PRESS_WLY_0524				
 				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);//ZTE_PRESS_WLY_0524
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x2);
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y2);
+				//printk("huangjinyu x2 = %d ,y2= %d \n",x2,y2);
 				input_mt_sync(ts->input_dev);
 			}
-#if defined(CONFIG_MACH_SKATE)
-#if 0
-			if(finger3)
-			{
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure3);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x3);
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y3);
-				input_mt_sync(ts->input_dev);
-			}
-
-			if(finger4)
-			{
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure4);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x4);
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y4);
-				input_mt_sync(ts->input_dev);
-			}
-
-			if(finger5)
-			{
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, pressure5);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 10);//ZTE_PRESS_WLY_0524
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x5);
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y5);
-				input_mt_sync(ts->input_dev);
-			}
-#endif
-#endif			
+			
 			input_sync(ts->input_dev);
 			 //ZTE_WLY_CRDB00517999,end
 			/*ZTE_WLY_LOCK_001,2009-12-07 END*/
@@ -640,7 +644,7 @@ static int synaptics_ts_probe(
 	/*ZTE_TOUCH_WLY_008,@2010-01-19,begin*/
 	struct proc_dir_entry *dir, *refresh;//ZTE_WLY_CRDB00509514
 	/*ZTE_TOUCH_WLY_008,@2010-01-19,end*/
-
+	//printk("sysnaptics probe\n");
 	ret = gpio_request(GPIO_TOUCH_EN_OUT, "touch voltage");
 	if (ret)
 	{	
@@ -713,12 +717,14 @@ static int synaptics_ts_probe(
 	ret = synaptics_i2c_write(ts->client, 0x35, 0x00);
 	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 	ret = synaptics_i2c_write(ts->client, 0x29, 0x00);	//ZTE_TS_ZFJ_20101228
+	#elif defined(CONFIG_MACH_MOONCAKE)
+	ret = synaptics_i2c_write(client, 0x21, 0x00);			//ZTE_TS_HUANGJINYU_20110322
 	#else
 	ret = synaptics_i2c_write(ts->client, 0x25, 0x00); /*wly set nomal operation*/
 	#endif
 	#if defined(CONFIG_MACH_SKATE)
 	ret = synaptics_i2c_read(ts->client, 0x3D, buf1, 2);
-	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
+	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)||defined(CONFIG_MACH_MOONCAKE)
 	ret = synaptics_i2c_read(ts->client, 0x31, buf1, 2);	//ZTE_TS_ZFJ_20101228
 	#else
 	ret = synaptics_i2c_read(ts->client, 0x2D, buf1, 2);
@@ -733,7 +739,7 @@ static int synaptics_ts_probe(
 	
 	#if defined(CONFIG_MACH_SKATE)
 	ret = synaptics_i2c_read(ts->client, 0x3F, buf1, 2);
-	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
+	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)||defined(CONFIG_MACH_MOONCAKE)
 	ret = synaptics_i2c_read(ts->client, 0x33, buf1, 2);	//ZTE_TS_ZFJ_20101228
 	#else
 	ret = synaptics_i2c_read(ts->client, 0x2F, buf1, 2); //ZTE_WLY_CRDB00512790
@@ -772,6 +778,12 @@ static int synaptics_ts_probe(
 	/*ZTE_WLY_RESUME_001,2010-3-18 START*/
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
+	#if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)
+	#if defined(CONFIG_MACH_MOONCAKE)
+	set_bit(KEY_HOME,ts->input_dev->keybit);
+	set_bit(KEY_BACK,ts->input_dev->keybit);
+	#endif
+	#endif
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	set_bit(EV_ABS, ts->input_dev->evbit);
 	//ZTE_SET_BIT_WLY_0518,BEGIN
@@ -789,7 +801,7 @@ static int synaptics_ts_probe(
 	set_bit(ABS_MT_POSITION_Y, ts->input_dev->absbit);
 	set_bit(ABS_MT_WIDTH_MAJOR, ts->input_dev->absbit);
 
-#ifdef TS_KEY_REPORT//ZTE_TS_ZT_20100513_002
+#if defined(CONFIG_MACH_R750)//ZTE_TS_ZT_20100513_002
 	max_y = 2739;
 #endif
 	
@@ -797,8 +809,24 @@ static int synaptics_ts_probe(
 	//input_set_abs_params(ts->input_dev, ABS_Y, 0, max_y, 0, 0);
 	//ZTE_SET_BIT_WLY_0518,END
 	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x+1, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y+1, 0, 0);
+/*ZTE_TS_ZFJ_20110511 begin*/
+/*ZTE_TS_ZFJ_20110317 begin*/
+/*
+#if defined(CONFIG_MACH_TURIES)
+	p725a_max_y = max_y;
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
+#else
+*/
+/*ZTE_TS_ZFJ_20110511 end*/
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
+/*ZTE_TS_ZFJ_20110511 begin*/
+/*
+	#endif
+*/
+/*ZTE_TS_ZFJ_20110317 begin*/
+/*ZTE_TS_ZFJ_20110511 end*/
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_SINGLE_TAP, 0, 5, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_TAP_HOLD, 0, 5, 0, 0);
@@ -837,6 +865,8 @@ static int synaptics_ts_probe(
 		ret = synaptics_i2c_write(ts->client, 0x36, 0x07);
 		#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 		ret = synaptics_i2c_write(ts->client, 0x2A, 0x07);	//ZTE_TS_ZFJ_20101228
+		#elif defined(CONFIG_MACH_MOONCAKE)
+		ret = synaptics_i2c_write(client, 0x22, 0x0f);			//ZTE_TS_HUANGJINYU_20110322
 		#else
 		ret = synaptics_i2c_write(ts->client, 0x26, 0x07);  /* enable abs int ZTE_WLY_CRDB00512790*/
 		#endif
@@ -858,6 +888,8 @@ static int synaptics_ts_probe(
 			ret = synaptics_i2c_write(ts->client, 0x36, 0x07);
 			#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 			ret = synaptics_i2c_write(ts->client, 0x2A, 0x07);	//ZTE_TS_ZFJ_20101228
+			#elif defined(CONFIG_MACH_MOONCAKE)
+			ret = synaptics_i2c_write(client, 0x22, 0x0f);			//ZTE_TS_HUANGJINYU_20110322
 			#else
 			ret = synaptics_i2c_write(ts->client, 0x26, 0x07);  /* enable abs int,ZTE_WLY_CRDB00512790 */
 			#endif
@@ -898,8 +930,9 @@ static int synaptics_ts_probe(
 /*ZTE_TOUCH_WLY_008,@2010-01-19,end*/
 	printk(KERN_INFO "synaptics_ts_probe: Start touchscreen %s in %s mode\n", ts->input_dev->name, ts->use_irq ? "interrupt" : "polling");
 
-#ifdef TS_KEY_REPORT//ZTE_TS_ZT_20100513_002
-	ts_key_report_synaptics_init();
+//#ifdef TS_KEY_REPORT//ZTE_TS_ZT_20100513_002
+#if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)
+	ts_key_report_init();
 #endif
 
 	return 0;
@@ -922,6 +955,9 @@ err_check_functionality_failed:
 static int synaptics_ts_remove(struct i2c_client *client)
 {
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
+	#if defined(CONFIG_TOUCHSCREEN_VIRTUAL_KEYS)
+	ts_key_report_deinit();
+	#endif
 	unregister_early_suspend(&ts->early_suspend);
 	if (ts->use_irq)
 		free_irq(client->irq, ts);
@@ -953,6 +989,8 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 		ret = synaptics_i2c_write(ts->client, 0x36, 0);
 		#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 		ret = synaptics_i2c_write(ts->client, 0x2A, 0);		//ZTE_TS_ZFJ_20101228
+		#elif defined(CONFIG_MACH_MOONCAKE)
+		ret = synaptics_i2c_write(client, 0x22, 0x00);			//ZTE_TS_HUANGJINYU_20110322
 		#else
 		ret = synaptics_i2c_write(ts->client, 0x26, 0);     /* disable interrupt,ZTE_WLY_CRDB00512790 */
 		#endif
@@ -962,6 +1000,8 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 		ret = synaptics_i2c_write(client, 0x35, 0x01);
 		#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 		ret = synaptics_i2c_write(client, 0x29, 0x01);			//ZTE_TS_ZFJ_20101228
+		#elif defined(CONFIG_MACH_MOONCAKE)
+		ret = synaptics_i2c_write(client, 0x21, 0x01);			//ZTE_TS_HUANGJINYU_20110322
 		#else
 		ret = synaptics_i2c_write(client, 0x25, 0x01);      /* deep sleep *//*wly value need change, ZTE_WLY_CRDB00512790*/
 		#endif
@@ -982,6 +1022,8 @@ static int synaptics_ts_resume(struct i2c_client *client)
 	ret = synaptics_i2c_write(client, 0x35, 0x00);
 	#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 	ret = synaptics_i2c_write(ts->client, 0x29, 0x00);		//ZTE_TS_ZFJ_20101228
+	#elif defined(CONFIG_MACH_MOONCAKE)
+	ret = synaptics_i2c_write(client, 0x21, 0x00);			//ZTE_TS_HUANGJINYU_20110322
 	#else
 	ret = synaptics_i2c_write(ts->client, 0x25, 0x00); /*wly set nomal operation,ZTE_WLY_CRDB00512790*/
 	#endif
@@ -999,6 +1041,9 @@ static int synaptics_ts_resume(struct i2c_client *client)
 			#elif defined(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)
 			synaptics_i2c_write(ts->client, 0x2A, 0x07); 	//ZTE_TS_ZFJ_20101228
 			synaptics_i2c_write(ts->client, 0x35, 0x7F); 	//ZTE_TS_ZFJ_20101228
+			#elif defined(CONFIG_MACH_MOONCAKE)
+			synaptics_i2c_write(ts->client, 0x22, 0x0f); 	//ZTE_TS_HUANGJINYU_20110322
+			//synaptics_i2c_write(ts->client, 0x35, 0x7F); 	//ZTE_TS_HUANGJINYU_20110322			
 			#else
 			synaptics_i2c_write(ts->client, 0x26, 0x07);    /* enable abs int,ZTE_WLY_CRDB00512790 */
 			synaptics_i2c_write(ts->client, 0x31, 0x7F); /*wly set 2D gesture enable,ZTE_WLY_CRDB00512790*/
@@ -1043,6 +1088,7 @@ static struct i2c_driver synaptics_ts_driver = {
 
 static int __devinit synaptics_ts_init(void)
 {
+
 	/*ZTE_TS_ZFJ_20110302 begin*/
 	#if 0
 	synaptics_wq = create_rt_workqueue("synaptics_wq");
