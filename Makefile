@@ -338,7 +338,7 @@ AFLAGS_MODULE   = $(MODFLAGS)
 LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
 CFLAGS_KERNEL	= -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
 AFLAGS_KERNEL	= -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
-CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -02 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
+CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
 
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
