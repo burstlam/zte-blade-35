@@ -108,6 +108,7 @@ unsigned int normalized_sysctl_sched_wakeup_granularity = 3000000UL;
 #else
 unsigned int sysctl_sched_wakeup_granularity = 25000UL;
 unsigned int normalized_sysctl_sched_wakeup_granularity = 25000UL;
+#endif
 
 const_debug unsigned int sysctl_sched_migration_cost = 500000UL;
 
