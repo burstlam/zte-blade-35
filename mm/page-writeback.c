@@ -60,11 +60,8 @@ static inline long sync_writeback_pages(unsigned long dirtied)
 /*
  * Start background writeback (via writeback threads) at this percentage
  */
-#ifdef CONFIG_KERNEL_TWEAKING
-int dirty_background_ratio = 50;
-#else
-int dirty_background_ratio = 10;
-#endif
+int dirty_background_ratio = 5;
+
 /*
  * dirty_background_bytes starts at 0 (disabled) so that it is a function of
  * dirty_background_ratio * the amount of dirtyable memory
@@ -80,11 +77,8 @@ int vm_highmem_is_dirtyable;
 /*
  * The generator of dirty data starts writeback at this percentage
  */
-#ifdef CONFIG_KERNEL_TWEAKING
-int vm_dirty_ratio = 95;
-#else
 int vm_dirty_ratio = 10;
-#endif
+
 /*
  * vm_dirty_bytes starts at 0 (disabled) so that it is a function of
  * vm_dirty_ratio * the amount of dirtyable memory
@@ -94,19 +88,13 @@ unsigned long vm_dirty_bytes;
 /*
  * The interval between `kupdate'-style writebacks
  */
-#ifdef CONFIG_KERNEL_TWEAKING
-unsigned int dirty_writeback_interval = 20 * 100; /* centiseconds */
-#else
 unsigned int dirty_writeback_interval = 5 * 100; /* centiseconds */
-#endif
+
 /*
  * The longest time for which data is allowed to remain dirty
  */
-#ifdef CONFIG_KERNEL_TWEAKING
 unsigned int dirty_expire_interval = 10 * 100; /* centiseconds */
-#else
-unsigned int dirty_expire_interval = 30 * 100; /* centiseconds */
-#endif
+
 /*
  * Flag that makes the machine dump writes/reads and block dirtyings.
  */

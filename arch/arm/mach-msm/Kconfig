@@ -1,11 +1,5 @@
 if ARCH_MSM
 
-config KERNEL_TWEAKING
-	bool "KERNEL_TWEAKING"
-	default y
-	help
-	  Enable Kernel tweaks
-
 choice
 	prompt "MSM SoC Type"
 	default ARCH_MSM7X00A

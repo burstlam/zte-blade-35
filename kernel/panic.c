@@ -24,11 +24,7 @@
 #include <linux/nmi.h>
 #include <linux/dmi.h>
 
-#ifdef CONFIG_KERNEL_TWEAKING
-int panic_on_oops = 1;
-#else
 int panic_on_oops;
-#endif
 static unsigned long tainted_mask;
 static int pause_on_oops;
 static int pause_on_oops_flag;
