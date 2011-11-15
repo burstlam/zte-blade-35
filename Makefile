@@ -230,8 +230,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -pipe
-HOSTCXXFLAGS = -O2 -pipe
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -pipe
+HOSTCXXFLAGS = -O3 -pipe
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -332,13 +332,13 @@ CHECK		= sparse
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-MODFLAGS	= -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp -DMODULE
+MODFLAGS	= -O3 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp -DMODULE
 CFLAGS_MODULE   = $(MODFLAGS)
 AFLAGS_MODULE   = $(MODFLAGS)
 LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
-CFLAGS_KERNEL	= -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
-AFLAGS_KERNEL	= -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
-CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -O2 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
+CFLAGS_KERNEL	= -O3 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
+AFLAGS_KERNEL	= -O3 -marm -fomit-frame-pointer -pipe -ffast-math -mtune=arm1136jf-s -mfloat-abi=softfp -mfpu=vfp
+CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
