@@ -19,14 +19,9 @@
  *
  * SMP support based on mod by faux123
  *
-<<<<<<< HEAD
  * requires to add
  * EXPORT_SYMBOL_GPL(nr_running);
  * at the end of kernel/sched.c
-=======
- * For a general overview of smartassV2 see the relavent part in
- * Documentation/cpu-freq/governors.txt
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
  *
  */
 
@@ -46,17 +41,10 @@
 
 /*
  * The "ideal" frequency to use when awake. The governor will ramp up faster
-<<<<<<< HEAD
  * twards the ideal frequency and slower after it has passed it. Similarly,
  * lowering the frequency twards the ideal frequency is faster than below it.
  */
 #define DEFAULT_AWAKE_IDEAL_FREQ 604800
-=======
- * towards the ideal frequency and slower after it has passed it. Similarly,
- * lowering the frequency towards the ideal frequency is faster than below it.
- */
-#define DEFAULT_AWAKE_IDEAL_FREQ 518400
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 static unsigned int awake_ideal_freq;
 
 /*
@@ -65,35 +53,19 @@ static unsigned int awake_ideal_freq;
  * that practically when sleep_ideal_freq==0 the awake_ideal_freq is used
  * also when suspended).
  */
-<<<<<<< HEAD
 #define DEFAULT_SLEEP_IDEAL_FREQ 245000
 static unsigned int sleep_ideal_freq;
 
 /*
  * Freqeuncy delta when ramping up.
  * zero disables and causes to always jump straight to max frequency.
-=======
-#define DEFAULT_SLEEP_IDEAL_FREQ 352000
-static unsigned int sleep_ideal_freq;
-
-/*
- * Freqeuncy delta when ramping up above the ideal freqeuncy.
- * Zero disables and causes to always jump straight to max frequency.
- * When below the ideal freqeuncy we always ramp up to the ideal freq.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
  */
 #define DEFAULT_RAMP_UP_STEP 128000
 static unsigned int ramp_up_step;
 
 /*
-<<<<<<< HEAD
  * Freqeuncy delta when ramping down.
  * zero disables and will calculate ramp down according to load heuristic.
-=======
- * Freqeuncy delta when ramping down below the ideal freqeuncy.
- * Zero disables and will calculate ramp down according to load heuristic.
- * When above the ideal freqeuncy we always ramp down to the ideal freq.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
  */
 #define DEFAULT_RAMP_DOWN_STEP 256000
 static unsigned int ramp_down_step;
@@ -112,20 +84,12 @@ static unsigned long min_cpu_load;
 
 /*
  * The minimum amount of time to spend at a frequency before we can ramp up.
-<<<<<<< HEAD
-=======
- * Notice we ignore this when we are below the ideal frequency.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
  */
 #define DEFAULT_UP_RATE_US 48000;
 static unsigned long up_rate_us;
 
 /*
  * The minimum amount of time to spend at a frequency before we can ramp down.
-<<<<<<< HEAD
-=======
- * Notice we ignore this when we are above the ideal frequency.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
  */
 #define DEFAULT_DOWN_RATE_US 99000;
 static unsigned long down_rate_us;
@@ -134,11 +98,7 @@ static unsigned long down_rate_us;
  * The frequency to set when waking up from sleep.
  * When sleep_ideal_freq=0 this will have no effect.
  */
-<<<<<<< HEAD
 #define DEFAULT_SLEEP_WAKEUP_FREQ 604800
-=======
-#define DEFAULT_SLEEP_WAKEUP_FREQ 99999999
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 static unsigned int sleep_wakeup_freq;
 
 /*
@@ -202,11 +162,7 @@ static int cpufreq_governor_smartass(struct cpufreq_policy *policy,
 static
 #endif
 struct cpufreq_governor cpufreq_gov_smartass2 = {
-<<<<<<< HEAD
 	.name = "SmartassV2",
-=======
-	.name = "smartassV2",
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 	.governor = cpufreq_governor_smartass,
 	.max_transition_latency = 9000000,
 	.owner = THIS_MODULE,
@@ -351,13 +307,8 @@ static void cpufreq_smartass_timer(unsigned long cpu)
 	this_smartass->old_freq = old_freq;
 
 	// Scale up if load is above max or if there where no idle cycles since coming out of idle,
-<<<<<<< HEAD
 	// or when we are above our max speed for a very long time (should only happend if entering sleep
 	// at high loads)
-=======
-	// additionally, if we are at or above the ideal_speed, verify we have been at this frequency
-	// for at least up_rate_us:
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 	if (cpu_load > max_cpu_load || delta_idle == 0)
 	{
 		if (old_freq < policy->max &&
@@ -373,15 +324,10 @@ static void cpufreq_smartass_timer(unsigned long cpu)
 		}
 		else this_smartass->ramp_dir = 0;
 	}
-<<<<<<< HEAD
 	/*
 	 * Do not scale down unless we have been at this frequency for the
 	 * minimum sample time.
 	 */
-=======
-	// Similarly for scale down: load should be below min and if we are at or below ideal
-	// frequency we require that we have been at this frequency for at least down_rate_us:
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 	else if (cpu_load < min_cpu_load && old_freq > policy->min &&
 		 (old_freq > this_smartass->ideal_speed ||
 		  cputime64_sub(update_time, this_smartass->freq_change_time) >= down_rate_us))
@@ -395,14 +341,6 @@ static void cpufreq_smartass_timer(unsigned long cpu)
 	}
 	else this_smartass->ramp_dir = 0;
 
-<<<<<<< HEAD
-=======
-	// To avoid unnecessary load when the CPU is already at high load, we don't
-	// reset ourselves if we are at max speed. If and when there are idle cycles,
-	// the idle loop will activate the timer.
-	// Additionally, if we queued some work, the work task will reset the timer
-	// after it has done its adjustments.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 	if (!queued_work && old_freq < policy->max)
 		reset_timer(cpu,this_smartass);
 }
@@ -454,10 +392,6 @@ static void cpufreq_smartass_freq_change_time_work(struct work_struct *work)
 			new_freq = old_freq;
 		}
 		else if (ramp_dir > 0 && nr_running() > 1) {
-<<<<<<< HEAD
-=======
-			// ramp up logic:
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 			if (old_freq < this_smartass->ideal_speed)
 				new_freq = this_smartass->ideal_speed;
 			else if (ramp_up_step) {
@@ -472,10 +406,6 @@ static void cpufreq_smartass_freq_change_time_work(struct work_struct *work)
 				old_freq,ramp_dir,this_smartass->ideal_speed);
 		}
 		else if (ramp_dir < 0) {
-<<<<<<< HEAD
-=======
-			// ramp down logic:
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 			if (old_freq > this_smartass->ideal_speed) {
 				new_freq = this_smartass->ideal_speed;
 				relation = CPUFREQ_RELATION_H;
@@ -483,48 +413,26 @@ static void cpufreq_smartass_freq_change_time_work(struct work_struct *work)
 			else if (ramp_down_step)
 				new_freq = old_freq - ramp_down_step;
 			else {
-<<<<<<< HEAD
 				int cpu_load = this_smartass->cur_cpu_load
 						+ 100 - max_cpu_load; // dummy load.
 				new_freq = old_freq * cpu_load / 100;
 				if (new_freq > old_freq)
-=======
-				// Load heuristics: Adjust new_freq such that, assuming a linear
-				// scaling of load vs. frequency, the load in the new frequency
-				// will be max_cpu_load:
-				new_freq = old_freq * this_smartass->cur_cpu_load / max_cpu_load;
-				if (new_freq > old_freq) // min_cpu_load > max_cpu_load ?!
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 					new_freq = old_freq -1;
 			}
 			dprintk(SMARTASS_DEBUG_ALG,"smartassQ @ %d ramp down: ramp_dir=%d ideal=%d\n",
 				old_freq,ramp_dir,this_smartass->ideal_speed);
 		}
-<<<<<<< HEAD
 		else {
-=======
-		else { // ramp_dir==0 ?! Could the timer change its mind about a queued ramp up/down
-		       // before the work task gets to run?
-		       // This may also happen if we refused to ramp up because the nr_running()==1
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 			new_freq = old_freq;
 			dprintk(SMARTASS_DEBUG_ALG,"smartassQ @ %d nothing: ramp_dir=%d nr_running=%lu\n",
 				old_freq,ramp_dir,nr_running());
 		}
 
-<<<<<<< HEAD
-=======
-		// do actual ramp up (returns 0, if frequency change failed):
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 		new_freq = target_freq(policy,this_smartass,new_freq,old_freq,relation);
 		if (new_freq)
 			this_smartass->freq_change_time_in_idle =
 				get_cpu_idle_time_us(cpu,&this_smartass->freq_change_time);
 
-<<<<<<< HEAD
-=======
-		// reset timer:
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 		if (new_freq < policy->max)
 			reset_timer(cpu,this_smartass);
 		// if we are maxed out, it is pointless to use the timer
@@ -839,11 +747,7 @@ static void smartass_suspend(int cpu, int suspend)
 	} else {
 		// to avoid wakeup issues with quick sleep/wakeup don't change actual frequency when entering sleep
 		// to allow some time to settle down. Instead we just reset our statistics (and reset the timer).
-<<<<<<< HEAD
 		// Eventually, even at full load the timer will lower the freqeuncy.
-=======
-		// Eventually, the timer will adjust the frequency if necessary.
->>>>>>> 2ade635... cpufreq: add smartassV2 governor
 
 		this_smartass->freq_change_time_in_idle =
 			get_cpu_idle_time_us(cpu,&this_smartass->freq_change_time);
